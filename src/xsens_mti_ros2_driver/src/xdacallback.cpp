@@ -58,6 +58,10 @@ XdaCallback::XdaCallback(DriverNode::SharedPtr node, size_t maxBufferSize)
 	{
 		RCLCPP_INFO(parent_node->get_logger(), "Rosnode time_option parameter is sample time fine from MTi");
 	}
+	else if (time_option == 3)
+	{
+		RCLCPP_INFO(parent_node->get_logger(), "Rosnode time_option parameter is sample time fine from MTi mapped onto the host clock");
+	}
 	else
 	{
 		RCLCPP_WARN(parent_node->get_logger(), "Rosnode time_option parameter is using host controller's ros time. ");

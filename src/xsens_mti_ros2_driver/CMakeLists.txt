@@ -92,6 +92,7 @@ add_executable(
 	src/xsens_log_handler.cpp
 	src/ntrip_util.cpp
 	src/xsens_time_handler.cpp
+	src/host_clock_sync.cpp
   src/high_rate_interpolator.cpp
 	src/xsens_diagnostics.cpp
 	src/xsens_mti_lifecycle_node.cpp
@@ -268,6 +269,9 @@ if(BUILD_TESTING)
   add_executable(test_local_enu test/test_local_enu.cpp)
   target_include_directories(test_local_enu PRIVATE include ${EIGEN3_INCLUDE_DIRS})
   add_test(NAME local_enu_regression COMMAND test_local_enu)
+  add_executable(test_host_clock_sync test/test_host_clock_sync.cpp src/host_clock_sync.cpp)
+  target_include_directories(test_host_clock_sync PRIVATE include)
+  add_test(NAME host_clock_sync COMMAND test_host_clock_sync)
 endif()
 
 ament_package()

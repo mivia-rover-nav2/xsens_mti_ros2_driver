@@ -82,6 +82,11 @@
         # 1) 0: Use UTCTime from MTI, recommended for accurate time synchronization.
         # 2) 1: Use UTCTime based on the SampleTimeFine from MTI.
         # 3) 2: Use UTCTime from the host device.
+        # 4) 3: Use SampleTimeFine from MTi mapped onto the host clock. The driver estimates
+        #       the offset and drift between the two clocks from the packets that reach the
+        #       host fastest, so stamps keep the sensor's exact spacing without the jitter of
+        #       the USB arrival time, and stay in step with other sensors stamped with the host
+        #       clock (no GNSS time needed, works indoors). Restarts by itself if either clock steps.
         # Note: Ensure "UTC Time" or "Sample Time Fine" is selected in MT Manager under Device Settings > Output Configurations, 
         # or you could also set 'enable_deviceConfig: true' for once to configure output.
         time_option: 0
@@ -195,7 +200,7 @@
         # Note: with 'enable_deviceConfig: true', 'pub_utctime' also controls whether
         # UTC Time is written to the device's output configuration. Set it to false
         # to drop UTC Time and save bandwidth, which can resolve 'Data overflow' at
-        # high output rates. This requires 'time_option' to be 1 or 2; with
+        # high output rates. This requires 'time_option' to be 1, 2 or 3; with
         # time_option 0 the stamps come from the device UTC clock, so UTC Time is
         # kept regardless and a warning is logged.
         pub_utctime: true

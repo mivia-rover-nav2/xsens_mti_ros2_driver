@@ -35,6 +35,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <xstypes/xsdatapacket.h>
 #include <mutex>
+#include "host_clock_sync.h"
 
 class XsensTimeHandler
 {
@@ -50,6 +51,13 @@ private:
     uint32_t m_prevSampleTimeFine;
     bool isFirstFrame;
     uint32_t m_RollOver = 0xFFFFFFFF;  // 2^32-1
+    // time_option 3: SampleTimeFine mapped onto the host clock
+    rclcpp::Time hostClockSyncTime(const XsDataPacket &packet);
+    HostClockSync m_hostClockSync;
+    bool m_hostClockSyncLocked = false;
+    std::size_t m_hostClockSyncResets = 0;
+    bool m_warnedNoSampleTimeFine = false;
+    rclcpp::Clock m_logClock{RCL_STEADY_TIME};
     mutable std::mutex m_mutex; // Mutex to protect the shared state
 };
 

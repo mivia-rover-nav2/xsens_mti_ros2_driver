@@ -469,6 +469,10 @@ bool XdaInterface::configureDevice()
 		{
 			RCLCPP_INFO(m_node->get_logger(), "Rosnode time_option is sample time fine from MTi");
 		}
+		else if (time_option == 3)
+		{
+			RCLCPP_INFO(m_node->get_logger(), "Rosnode time_option is sample time fine from MTi mapped onto the host clock");
+		}
 		else
 		{
 			RCLCPP_WARN(m_node->get_logger(), "Rosnode time_option is using host controller's ros time.");
@@ -832,7 +836,7 @@ bool XdaInterface::configureSensorSettings()
 		m_node->get_parameter("time_option", timeOption);
 		if (!configUtcTime && timeOption == 0)
 		{
-			RCLCPP_WARN(m_node->get_logger(), "pub_utctime is false but time_option is 0, which needs UTC Time from the device. Keeping UTC Time in the output configuration; set time_option to 1 or 2 to drop it.");
+			RCLCPP_WARN(m_node->get_logger(), "pub_utctime is false but time_option is 0, which needs UTC Time from the device. Keeping UTC Time in the output configuration; set time_option to 1, 2 or 3 to drop it.");
 			configUtcTime = true;
 		}
 		if (configUtcTime)

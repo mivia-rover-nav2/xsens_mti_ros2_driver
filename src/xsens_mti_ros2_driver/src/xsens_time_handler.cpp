@@ -39,8 +39,13 @@ rclcpp::Time XsensTimeHandler::convertUtcTimeToRosTime(const XsDataPacket &packe
     /*
     if m_time_option=0 and containsUtc, set time to utc
     else if {m_time_option=0 or 1, {doesn't have utc, but has containsSampleTimeFine}}, set time to sampletimefine
+    else if m_time_option=3, set time to sampletimefine mapped onto the host clock
     else set time to now
     */
+    if (m_time_option == 3)
+    {
+        return hostClockSyncTime(packet);
+    }
     // RCLCPP_INFO(rclcpp::get_logger("xsens_time_handler"), "time_option = %u", m_time_option);
     if (m_time_option == 0 && packet.containsUtcTime())
     {
@@ -115,6 +120,47 @@ rclcpp::Time XsensTimeHandler::convertUtcTimeToRosTime(const XsDataPacket &packe
         // RCLCPP_INFO(rclcpp::get_logger("xsens_time_handler"), "time_option is host controller time");
         return rclcpp::Clock().now(); // returns rclcpp time
     }
+}
+
+rclcpp::Time XsensTimeHandler::hostClockSyncTime(const XsDataPacket &packet)
+{
+    // Read the host clock first: everything below only adds delay.
+    const rclcpp::Time now = rclcpp::Clock().now();
+    const rclcpp::Logger logger = rclcpp::get_logger("xsens_time_handler");
+
+    if (!packet.containsSampleTimeFine())
+    {
+        if (!m_warnedNoSampleTimeFine)
+        {
+            RCLCPP_WARN(logger, "time_option 3 needs SampleTimeFine in the MTi output; "
+                "stamping with the host arrival time instead. Enable 'Sample Time Fine' in MT Manager "
+                "or set enable_deviceConfig: true once.");
+            m_warnedNoSampleTimeFine = true;
+        }
+        return now;
+    }
+
+    const int64_t stamp_ns = m_hostClockSync.update(packet.sampleTimeFine(), now.nanoseconds());
+
+    if (m_hostClockSync.resets() != m_hostClockSyncResets)
+    {
+        m_hostClockSyncResets = m_hostClockSync.resets();
+        m_hostClockSyncLocked = false;
+        RCLCPP_WARN(logger, "Host clock sync restarted: the host clock or the MTi counter stepped");
+    }
+    if (m_hostClockSync.locked() && !m_hostClockSyncLocked)
+    {
+        m_hostClockSyncLocked = true;
+        RCLCPP_INFO(logger, "Host clock sync locked: drift %+.1f ppm, mean transport delay %.1f ms",
+            m_hostClockSync.drift() * 1e6, m_hostClockSync.meanDelay() * 1e3);
+    }
+    else if (m_hostClockSyncLocked)
+    {
+        RCLCPP_INFO_THROTTLE(logger, m_logClock, 60000,
+            "Host clock sync: drift %+.1f ppm, mean transport delay %.1f ms",
+            m_hostClockSync.drift() * 1e6, m_hostClockSync.meanDelay() * 1e3);
+    }
+    return rclcpp::Time(stamp_ns, now.get_clock_type());
 }
 
 void XsensTimeHandler::setTimeOption(const int&option)

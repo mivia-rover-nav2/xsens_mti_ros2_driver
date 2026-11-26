@@ -334,6 +334,18 @@ Additional behaviour:
 - Covariance is unspecified, so configure measurement uncertainty and GNSS quality gating in the consumer. The driver's finite and range checks are not a substitute for application-specific quality gating.
 - This publisher alone does not implement a complete [REP 105](https://ros.org/reps/rep-0105.html) localization stack.
 
+## Host Clock Synchronization (time_option 3)
+
+Set `time_option: 3` to stamp messages with the MTi's SampleTimeFine mapped onto the host clock.
+
+The other options each leave one problem: `0` uses the MTi's UTC clock, which counts from 1970 until GNSS provides the time (so indoors the stamps do not match other sensors on the host clock); `1` anchors SampleTimeFine to the host clock only at the first packet, so the drift between the two clocks accumulates (about 0.45 s per hour measured on an MTi-8); `2` uses the arrival time on the host, which jitters by tens of milliseconds because USB hands the data over in bursts.
+
+Option 3 keeps both the sensor's sample spacing and the host clock. For each 1 s window of sensor time the driver keeps the packet that reached the host fastest (the transport delay is never negative, so the fastest packet is the closest to the sampling instant) and fits a line through the last 60 windows, which gives the offset and the drift between the two clocks. The stamps then carry a constant delay (the delay of the fastest packets) instead of the arrival jitter.
+
+- The first stamps after startup use the fastest packet seen so far; the fit locks after 2 s and the driver logs the drift and the mean transport delay, then once a minute.
+- If either clock steps (NTP correcting the host, the MTi restarting its counter), the fit restarts by itself within about 0.3 s and a warning is logged.
+- Requires SampleTimeFine in the output configuration (always included with `enable_deviceConfig: true`); without it the driver falls back to the host arrival time and warns once.
+
 ## Serial Port Low Latency (optional)
 
 Set `enable_low_latency: true` to have the driver request `ASYNC_LOW_LATENCY` on the serial port just before opening it.
